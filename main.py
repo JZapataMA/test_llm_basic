@@ -6,6 +6,8 @@ from langchain.prompts import PromptTemplate
 
 from dotenv import load_dotenv
 
+from utils import buscar_cita_en_paginas
+
 load_dotenv()
 
 # -----------------------------------------------------------------------------
@@ -77,19 +79,6 @@ tono = chain.run(document_text=documento_completo, question=preguntas["tono"])
 print("Tono del documento:")
 print(tono)
 print("\n" + "="*60 + "\n")
-
-# -----------------------------------------------------------------------------
-# Función para buscar en qué páginas se encuentra una cita dada
-# -----------------------------------------------------------------------------
-def buscar_cita_en_paginas(paginas, cita):
-    paginas_encontradas = []
-    for doc in paginas:
-        # Se busca la cita ignorando mayúsculas/minúsculas
-        if cita.lower() in doc.page_content.lower():
-            # Se obtiene el número de página de la metadata, si existe.
-            numero_pagina = doc.metadata.get("page", "Desconocido")
-            paginas_encontradas.append(numero_pagina)
-    return paginas_encontradas
 
 # -----------------------------------------------------------------------------
 # c. Página(s) donde se cita a "Mario Pérez"
