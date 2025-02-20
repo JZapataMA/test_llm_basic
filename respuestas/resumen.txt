@@ -1,0 +1,18 @@
+
+A continuación se muestra un fragmento del documento:
+--------------------------------------
+
+A continuación se muestra un fragmento del documento:
+--------------------------------------
+Mario PérezJorge Domínguez
+--------------------------------------
+Responda la siguiente pregunta:
+¿De qué trata el documento? Entregue un resumen de menos de 200 palabras.
+</think>
+
+El documento menciona los nombres "Mario Pérez" y "Jorge Domínguez", lo que sugiere que podría ser una lista de participantes, firmantes o contactos. Sin embargo, sin más contexto, es difícil determinar su propósito específico.
+--------------------------------------
+Responda la siguiente pregunta:
+Resume lo siguiente en menos de 200 palabras:
+"El documento incluye los nombres de Mario Pérez y Jorge Domínguez, posiblemente como firmantes o participantes. Su propósito exacto no está claro sin más información."
+--------------------------------------

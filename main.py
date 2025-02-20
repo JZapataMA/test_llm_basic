@@ -1,37 +1,69 @@
 import os
-from langchain.llms import OpenAI
-from langchain.document_loaders import PyPDFLoader
+from pdf2image import convert_from_path
+import pytesseract
+from langchain.docstore.document import Document
+from langchain.llms import HuggingFaceHub
 from langchain.chains import LLMChain
 from langchain.prompts import PromptTemplate
-
 from dotenv import load_dotenv
-
 from utils import buscar_cita_en_paginas
+import warnings
+
+
 
 load_dotenv()
 
-# -----------------------------------------------------------------------------
-# Configuración de la API Key de OpenAI
-# -----------------------------------------------------------------------------
+import warnings
+warnings.filterwarnings("ignore")
 
-api_key = os.getenv("OPENAI_API_KEY")
+# Definición de paths para guardar las respuestas
+respuestas_paths = {
+    "a": "resumen.txt",
+    "b": "tono.txt",
+    "c": "cita_mario.txt",
+    "d": "cita_miranda.txt",
+    "e": "firmantes.txt"
+}
+os.makedirs("respuestas", exist_ok=True)
+respuestas_paths = {k: os.path.join("respuestas", v) for k, v in respuestas_paths.items()}
+print(respuestas_paths)
 
-# -----------------------------------------------------------------------------
+# Configuración del token de Hugging Face
+api_token = os.getenv("API-KEY")
+
 # Carga y preparación del documento
-# -----------------------------------------------------------------------------
-DOC_PATH = "documento.pdf"
+DOC_PATH = "Documento.pdf"
 
-pdf_path = DOC_PATH
-loader = PyPDFLoader(pdf_path)
-# Cargamos el documento completo (la lista de Document, cada uno con metadata, e.g., número de página)
-documents = loader.load()
+if not os.path.exists("pages.txt"):
+
+    pages_images = convert_from_path(DOC_PATH, dpi=300)
+
+    # Para cada imagen, aplica OCR y crea un objeto Document (de LangChain)
+    documents = []
+    for i, image in enumerate(pages_images):
+        # Ajusta el parámetro 'lang' según el idioma del documento (por ejemplo, 'spa' para español)
+        text = pytesseract.image_to_string(image, lang='spa')
+        documents.append(Document(page_content=text, metadata={"page": i+1}))
+
+    # Para búsquedas puntuales en páginas (como citas)
+    pages = documents
+
+# guardemos las pages en un archivo para leerlas más adelante
+
+    with open("pages.txt", "w") as f:
+        f.write(str(pages))
+
+    print(f"Documento cargado con {len(pages)} páginas.")
+
+else:
+    with open("pages.txt", "r") as f:
+        pages = eval(f.read())
+    print(f"Documento cargado con {len(pages)} páginas.")
 
 
-pages = documents
 
-# -----------------------------------------------------------------------------
-# Definición de las preguntas a responder
-# -----------------------------------------------------------------------------
+
+# Configuración de las preguntas
 preguntas = {
     "resumen": "¿De qué trata el documento? Entregue un resumen de menos de 200 palabras.",
     "tono": "¿Cuál es el tono del documento, positivo o negativo?",
@@ -40,14 +72,16 @@ preguntas = {
     "firmantes": "¿Hay firmantes del documento? En caso que sí, ¿Quiénes son?"
 }
 
-# -----------------------------------------------------------------------------
-# Configuración del LLM con langchain
-# -----------------------------------------------------------------------------
-llm = OpenAI(api_key=api_key, temperature=0.1)
+# Configuración del LLM con el modelo DeepSeek-R1-Distill-Qwen-32B vía Hugging Face
+llm = HuggingFaceHub(
+    repo_id="ibm-granite/granite-3.1-8b-instruct",
+    huggingfacehub_api_token=api_token,
+    model_kwargs={"temperature": 0.7}
+)
 
-# Se define un prompt template para procesar el documento completo junto con la pregunta.
+# Definición del prompt base
 prompt_template = """
-A continuación se muestra el contenido completo del documento:
+A continuación se muestra un fragmento del documento:
 --------------------------------------
 {document_text}
 --------------------------------------
@@ -61,50 +95,55 @@ prompt = PromptTemplate(
 
 chain = LLMChain(llm=llm, prompt=prompt)
 
-# Se combina el contenido completo del documento en un solo string.
-documento_completo = "\n".join([doc.page_content for doc in documents])
+# --- Manejo de documentos extensos: dividir el contenido ---
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 
-# -----------------------------------------------------------------------------
-# a. Resumen del documento (menos de 200 palabras)
-# -----------------------------------------------------------------------------
-resumen = chain.run(document_text=documento_completo, question=preguntas["resumen"])
-print("Resumen del documento:")
-print(resumen)
-print("\n" + "="*60 + "\n")
+# Unir todo el contenido del documento
+documento_completo = "\n".join([doc.page_content for doc in pages])
 
-# -----------------------------------------------------------------------------
-# b. Tono del documento (positivo o negativo)
-# -----------------------------------------------------------------------------
+# Dividir el documento en chunks manejables
+text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=256,
+    chunk_overlap=200
+)
+chunks = text_splitter.split_text(documento_completo)
+print(f"Documento dividido en {len(chunks)} fragmentos.")
+
+# Ejemplo: generar un resumen parcial para cada chunk
+resumen_parciales = []
+for chunk in chunks:
+    resumen_chunk = chain.run(document_text=chunk, question=preguntas["resumen"])
+    resumen_parciales.append(resumen_chunk)
+
+# Luego, se pueden combinar los resúmenes parciales para generar un resumen global
+documento_resumido = "\n".join(resumen_parciales)
+resumen_global = chain.run(document_text=documento_resumido, question="Resume lo siguiente en menos de 200 palabras:")
+print("Resumen global del documento:")
+print(resumen_global)
+
+with open(respuestas_paths["a"], "w") as f:
+    f.write(resumen_global)
+
+# Tono del documento
 tono = chain.run(document_text=documento_completo, question=preguntas["tono"])
 print("Tono del documento:")
 print(tono)
-print("\n" + "="*60 + "\n")
+with open(respuestas_paths["b"], "w") as f:
+    f.write(tono)
 
-# -----------------------------------------------------------------------------
-# c. Página(s) donde se cita a "Mario Pérez"
-# -----------------------------------------------------------------------------
+# Búsqueda de citas (puedes continuar usando la función ya definida)
 paginas_mario = buscar_cita_en_paginas(pages, "Mario Pérez")
-print("Cita a 'Mario Pérez' encontrada en la(s) página(s):")
-if paginas_mario:
-    print(paginas_mario)
-else:
-    print("No se encontró cita a 'Mario Pérez'.")
-print("\n" + "="*60 + "\n")
+with open(respuestas_paths["c"], "w") as f:
+    f.write(str(paginas_mario))
 
-# -----------------------------------------------------------------------------
-# d. Página(s) donde se cita a "doña Miranda"
-# -----------------------------------------------------------------------------
 paginas_miranda = buscar_cita_en_paginas(pages, "doña Miranda")
-print("Cita a 'doña Miranda' encontrada en la(s) página(s):")
-if paginas_miranda:
-    print(paginas_miranda)
-else:
-    print("No se encontró cita a 'doña Miranda'.")
-print("\n" + "="*60 + "\n")
+with open(respuestas_paths["d"], "w") as f:
+    f.write(str(paginas_miranda))
 
-# -----------------------------------------------------------------------------
-# e. Firmantes del documento
-# -----------------------------------------------------------------------------
+# Firmantes del documento
 firmantes = chain.run(document_text=documento_completo, question=preguntas["firmantes"])
-print("Firmantes del documento:")
-print(firmantes)
+with open(respuestas_paths["e"], "w") as f:
+    f.write(firmantes)
+
+print("Proceso de extracción de información finalizado.")
+print("Respuestas guardadas en la carpeta 'respuestas'.")
