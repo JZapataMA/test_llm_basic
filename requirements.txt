@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+langchain_unstructured
+langchain
+langchain_community
+langchain_ibm
+ibm-watson-machine-learning
+ibm-watsonx-ai
+pdf2image
+pytesseract
+python-dotenv

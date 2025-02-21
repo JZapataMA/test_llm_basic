@@ -1,19 +1,22 @@
+Use the following pieces of context to answer the question at the end. If you don't know the answer, just say that you don't know, don't try to make up an answer.
 
-A continuación se muestra un fragmento del documento:
---------------------------------------
+Procedimiento Civil, las que se dan por expresamente reproducidas en este acto.-
 
+===
 
+Jorge Domínguez
 
+Mario Pérez
 
+ALEGAR EN EL JUICIO HECHOS DISTINTOS COMO JUSTIFICATIVOS DEL DESPIDO".
+A Pero, por otra parte, si fingiéramos que es esa la sanción a aplicar, cabría preguntarse qué
 
+artículo 168 inciso primero del código del trabajo o el valor que SS. estime más ajustado a
+derecho.
 
+POR TÉRMINO DE CONTRATO, En Subsidio, Despido injustificado, indebido o
 
+Question: ¿Cuál es el tono del documento, positivo o negativo?
+Helpful Answer:
 
-
-Mario PérezJorge Domínguez
---------------------------------------
-Responda la siguiente pregunta:
-¿Cuál es el tono del documento, positivo o negativo?
-</think>
-
-El tono del documento es neutro, ya que no se expresan emociones ni opiniones claras en el texto proporcionado.
+The tone of the document is neutral, as it presents facts and legal references without expressing a clear positive or negative sentiment. The document outlines a procedure for a civil case, discusses potential justifications for dismissal, and refers to specific labor laws. It does not convey a biased or judgmental viewpoint.

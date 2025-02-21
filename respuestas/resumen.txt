@@ -1,18 +1,20 @@
+Use the following pieces of context to answer the question at the end. If you don't know the answer, just say that you don't know, don't try to make up an answer.
 
-A continuación se muestra un fragmento del documento:
---------------------------------------
+artículo 168 inciso primero del código del trabajo o el valor que SS. estime más ajustado a
+derecho.
 
-A continuación se muestra un fragmento del documento:
---------------------------------------
-Mario PérezJorge Domínguez
---------------------------------------
-Responda la siguiente pregunta:
-¿De qué trata el documento? Entregue un resumen de menos de 200 palabras.
-</think>
+Juzgado competente... a fin de que ésta así lo declare. Como consecuencia de ello, Solicito
 
-El documento menciona los nombres "Mario Pérez" y "Jorge Domínguez", lo que sugiere que podría ser una lista de participantes, firmantes o contactos. Sin embargo, sin más contexto, es difícil determinar su propósito específico.
---------------------------------------
-Responda la siguiente pregunta:
-Resume lo siguiente en menos de 200 palabras:
-"El documento incluye los nombres de Mario Pérez y Jorge Domínguez, posiblemente como firmantes o participantes. Su propósito exacto no está claro sin más información."
---------------------------------------
+se demandan con reajustes e intereses, según lo dispuesto en los artículos 63 y 173 del Código
+
+del Trabajo.
+
+Z.- Costas: Todo con expresa condenación en costas.
+
+los demandados deben ser condenados al pago de dicha cantidad o del valor o periodo
+que SSa. estime más ajustado a derecho.- Ello en virtud de lo dispuesto en el art. 73
+del código del Trabajo.-
+
+Question: ¿De qué trata el documento? Entregue un resumen de menos de 200 palabras.
+Helpful Answer:
+El documento parece ser un proceso legal relacionado con una demanda laboral. Ltd. (SS. en la traducción) representa una更新プログラム o una suma ajustada a derecho, que puede ser el salario mínimo, el salario promedio o otro valor determinado por el juez. La demanda conlleva reajustes y intereses, según los artículos 63 y 173 del Código del Trabajo. Ambos demandados se encuentran obligados a pagar esta cantidad, que es el valor o período que el juez estima más adecuado a derecho. La condena en costas implica que los demandados deben pagar las costas de ambos lados. Esta situación se basa en el artículo 73 del Código del Trabajo, que establece las disposiciones para la determinación de costas en casos laborales.
