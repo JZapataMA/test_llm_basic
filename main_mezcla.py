@@ -111,7 +111,7 @@ preguntas = {
     "resumen": "¿De qué trata el documento? Entregue un resumen de menos de 200 palabras.",
     "tono": "¿Cuál es el tono del documento, positivo o negativo?",
     "mario": "¿En qué página del documento se cita a Mario Pérez?",
-    "miranda": "¿En qué página del documento se cita a doña Miranda?",
+    "miranda": "¿En qué página del documento se cita a doña MIRANDA?",
     "firmantes": "¿Hay firmantes del documento? En caso que sí, ¿Quiénes son?"
 }
 
@@ -119,7 +119,7 @@ preguntas = {
 # 5. DIVIDIR EL DOCUMENTO Y CREAR EMBEDDINGS
 #########################
 # Dividir el documento en fragmentos manejables
-text_splitter = RecursiveCharacterTextSplitter(chunk_size=512, chunk_overlap=0)
+text_splitter = RecursiveCharacterTextSplitter(chunk_size=1024, chunk_overlap=0)
 chunks = text_splitter.split_text(documento_completo)
 print(f"Documento dividido en {len(chunks)} fragmentos.")
 
@@ -134,7 +134,7 @@ chunk_docs = [
 ]
 
 # Crear embeddings utilizando HuggingFaceEmbeddings (modelo multilingüe que soporta español)
-embeddings = HuggingFaceEmbeddings(model_name="intfloat/multilingual-e5-large")
+embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
 # Construir vectorstore FAISS a partir de los documentos fragmentados
 vectorstore = FAISS.from_documents(chunk_docs, embeddings)
@@ -153,7 +153,7 @@ llm = WatsonxLLM(
         GenParams.TEMPERATURE: 0.7,
         GenParams.MIN_NEW_TOKENS: 5,
         GenParams.MAX_NEW_TOKENS: 8192,
-        GenParams.STOP_SEQUENCES: ["Human:", "Observation"],
+        
     },
 )
 
@@ -172,7 +172,7 @@ prompt_template = PromptTemplate(
 qa = RetrievalQA.from_chain_type(
     llm=llm,
     chain_type="stuff",
-    retriever=vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 4}),
+    retriever=vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 5}),
     chain_type_kwargs={"prompt": prompt_template}
 )
 
