@@ -31,7 +31,7 @@ from langchain.docstore.document import Document
 from langchain.chains import RetrievalQA
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings import HuggingFaceEmbeddings
-from langchain.vectorstores import FAISS
+from langchain_community.vectorstores import FAISS
 from langchain.prompts import PromptTemplate
 
 # Importaciones para el LLM de Watsonx y utilidades IBM
@@ -42,8 +42,10 @@ from ibm_granite_community.notebook_utils import get_env_var
 
 # Importación de vectorstore alternativo (Chroma) y función de búsqueda de citas
 from langchain_community.vectorstores import Chroma
-from utils import buscar_cita_en_paginas
+from utils import buscar_cita_en_paginas, clean_document, download_nltk_resources
 
+
+download_nltk_resources()
 #########################
 # 2. CONFIGURACIÓN DE RUTAS Y CREDENCIALES
 #########################
@@ -53,7 +55,9 @@ respuestas_paths = {
     "b": "tono.txt",
     "c": "cita_mario.txt",
     "d": "cita_miranda.txt",
-    "e": "firmantes.txt"
+    "e": "firmantes.txt",
+    "f": "cita_mario_llm.txt",
+    "g": "cita_miranda_llm.txt"
 }
 os.makedirs("respuestas", exist_ok=True)
 respuestas_paths = {k: os.path.join("respuestas", v) for k, v in respuestas_paths.items()}
@@ -72,9 +76,9 @@ DOC_PATH = "Documento.pdf"
 #########################
 # 3. EXTRAER TEXTO DEL PDF CON OCR
 #########################
-# Se utiliza OCR para extraer el texto y se guarda en "pages.txt" para evitar reprocesos
+
 if not os.path.exists("pages.txt"):
-    pages_images = convert_from_path(DOC_PATH, dpi=300)
+    pages_images = convert_from_path(DOC_PATH, dpi=100)
     documents = []
     for i, image in enumerate(pages_images):
         # 'lang' se establece en 'spa' para procesar en español
@@ -86,10 +90,19 @@ if not os.path.exists("pages.txt"):
 else:
     with open("pages.txt", "r", encoding="utf-8") as f:
         documents = eval(f.read())
+        # procesar el texto para eliminar caracteres especiales y stopwords
+        documents = [Document(page_content=doc.page_content, metadata=doc.metadata) for doc in documents]
+
     print(f"Documento cargado con {len(documents)} páginas desde pages.txt.")
 
 # Unir todo el contenido en un único string
-documento_completo = "\n".join([doc.page_content for doc in documents])
+#documento_completo = "\n".join([doc.page_content for doc in documents])
+
+documento_completo = "\n".join([
+    f"Página {doc.metadata.get('page', 'Desconocido')}: {doc.page_content}"
+    for doc in documents
+])
+
 
 #########################
 # 4. CONFIGURACIÓN DE CONSULTAS (PREGUNTAS)
@@ -106,15 +119,22 @@ preguntas = {
 # 5. DIVIDIR EL DOCUMENTO Y CREAR EMBEDDINGS
 #########################
 # Dividir el documento en fragmentos manejables
-text_splitter = RecursiveCharacterTextSplitter(chunk_size=256, chunk_overlap=50)
+text_splitter = RecursiveCharacterTextSplitter(chunk_size=512, chunk_overlap=0)
 chunks = text_splitter.split_text(documento_completo)
 print(f"Documento dividido en {len(chunks)} fragmentos.")
 
 # Crear objetos Document para cada fragmento
-chunk_docs = [Document(page_content=chunk) for chunk in chunks]
+chunk_docs = [
+    Document(
+        page_content=chunk,
+        metadata={"page": doc.metadata.get("page")}
+    )
+    for doc in documents
+    for chunk in text_splitter.split_text(doc.page_content)
+]
 
 # Crear embeddings utilizando HuggingFaceEmbeddings (modelo multilingüe que soporta español)
-embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+embeddings = HuggingFaceEmbeddings(model_name="intfloat/multilingual-e5-large")
 
 # Construir vectorstore FAISS a partir de los documentos fragmentados
 vectorstore = FAISS.from_documents(chunk_docs, embeddings)
@@ -122,7 +142,7 @@ vectorstore = FAISS.from_documents(chunk_docs, embeddings)
 #########################
 # 6. CONFIGURACIÓN DEL MODELO DE LENGUAJE Y PROMPT
 #########################
-# Configurar el LLM de Watsonx
+
 llm = WatsonxLLM(
     model_id="ibm/granite-3-2-8b-instruct-preview-rc",
     url=watsonx_url,
@@ -137,7 +157,6 @@ llm = WatsonxLLM(
     },
 )
 
-# Definir el prompt template para obtener respuestas en español, sin comentarios adicionales
 prompt_template = PromptTemplate(
     input_variables=["context", "question"],
     template=(
@@ -162,11 +181,11 @@ qa = RetrievalQA.from_chain_type(
 #########################
 def obtener_resumen():
     """Obtiene un resumen del documento en menos de 200 palabras."""
-    return qa.run(preguntas["resumen"])
+    return qa.invoke(preguntas["resumen"])["result"]
 
 def obtener_tono():
     """Obtiene el tono del documento (positivo o negativo)."""
-    return qa.run(preguntas["tono"])
+    return qa.invoke(preguntas["tono"])["result"]
 
 def obtener_cita_mario():
     """Obtiene la(s) página(s) donde se cita a 'Mario Pérez'."""
@@ -178,7 +197,15 @@ def obtener_cita_miranda():
 
 def obtener_firmantes():
     """Obtiene los firmantes del documento."""
-    return qa.run(preguntas["firmantes"])
+    return qa.invoke(preguntas["firmantes"])["result"]
+
+def obtener_cita_mario_llm():
+    resultado = qa.invoke({"query": preguntas["mario"]})
+    return resultado["result"]
+
+def obtener_cita_miranda_llm():
+    resultado = qa.invoke({"query": preguntas["miranda"]})
+    return resultado["result"]
 
 #########################
 # 8. FUNCIÓN PRINCIPAL (MAIN)
@@ -189,6 +216,9 @@ def main():
     cita_mario = obtener_cita_mario()
     cita_miranda = obtener_cita_miranda()
     firmantes = obtener_firmantes()
+    cita_mario_llm = obtener_cita_mario_llm()
+    cita_miranda_llm = obtener_cita_miranda_llm()
+
 
     # Guardar respuestas en archivos
     with open(respuestas_paths["a"], "w", encoding="utf-8") as f:
@@ -201,6 +231,10 @@ def main():
         f.write(str(cita_miranda))
     with open(respuestas_paths["e"], "w", encoding="utf-8") as f:
         f.write(firmantes)
+    with open(respuestas_paths["f"], "w", encoding="utf-8") as f:
+        f.write(cita_mario_llm)
+    with open(respuestas_paths["g"], "w", encoding="utf-8") as f:
+        f.write(cita_miranda_llm)
 
     print("Respuestas guardadas en la carpeta 'respuestas'.")
 
