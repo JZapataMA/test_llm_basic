@@ -1,61 +1,86 @@
-# Presentación del Flujo de Trabajo
+# Procesamiento de Documentos PDF y Sistema de QA con LLM
 
-A continuación se presenta un pequeño listado de puntos claves utilizados para poder procesar el documento y montar un QA a través del uso de un modelo LLM.
-Para fuente de inspiración de la realización de este trabajo, utilice una presentación de [IBM Comunnity](https://github.com/ibm-granite-community) en donde enseñan el uso y el poder de granite, modelo de lenguaje de IBM.
+Este proyecto implementa un flujo de trabajo para procesar documentos PDF y construir un sistema de Preguntas & Respuestas (QA) utilizando técnicas de OCR, embeddings y un modelo LLM. La idea principal es extraer el contenido textual del PDF, segmentarlo, vectorizarlo y finalmente emplear un modelo de lenguaje para responder consultas específicas acerca del documento.
 
-## Pasos
+---
 
-1. **Extracción del texto mediante OCR (Tesseract)**
-   - Se convierte cada página del PDF en imagen.  
-   - Se aplica [Tesseract](https://github.com/tesseract-ocr/tesseract) para extraer el texto de cada imagen en español.  
-   - Se almacena el resultado en un archivo temporal (`pages.txt`) para evitar reprocesar en cada ejecución.
+## Tabla de Contenidos
 
-2. **Unificación del contenido**
-   - Se concatena el texto de todas las páginas en un solo _string_ (el documento completo).
+- [Descripción del Flujo de Trabajo](#descripción-del-flujo-de-trabajo)
+- [Pasos del Proceso](#pasos-del-proceso)
+- [Función de Utilidad: `buscar_cita_en_paginas`](#función-de-utilidad-buscar_cita_en_paginas)
+- [Requisitos](#requisitos)
+- [Instalación](#instalación)
+- [Uso](#uso)
+- [Estructura del Código](#estructura-del-código)
+- [Inspiración](#inspiración)
 
-3. **División del documento en fragmentos (Chunks)**
-   - Se utiliza [`RecursiveCharacterTextSplitter`](https://api.python.langchain.com/en/latest/text_splitter.html#langchain.text_splitter.RecursiveCharacterTextSplitter) para fraccionar el texto extenso en partes más pequeñas y así optimizar el procesamiento, evitando superar límites de tokens en el modelo.
+---
 
-4. **Vectorización (Embeddings) de cada fragmento**
-   - Se emplea el modelo de embeddings [`all-MiniLM-L6-v2`](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2) para convertir cada _chunk_ en un vector de alta dimensión.
-   - Estos vectores resultan esenciales para la búsqueda semántica.
+## Descripción del Flujo de Trabajo
 
-5. **Creación de la base de datos vectorial con FAISS**
-   - Se insertan los embeddings en una base [FAISS](https://github.com/facebookresearch/faiss), lo que permite realizar búsquedas por similitud de forma eficiente.
+El proyecto se inspira en una presentación de [IBM Community](https://github.com/ibm-granite-community) que muestra el poder del modelo de lenguaje Granite de IBM. A partir de esa base, se ha desarrollado un flujo que abarca desde la extracción de texto mediante OCR hasta la generación de respuestas mediante un sistema QA que combina embeddings y un LLM.
 
-6. **Configuración de un LLM (Hugging Face Hub)**
-   - Se utiliza el modelo [`ibm-granite/granite-3.1-2b-instruct`](https://huggingface.co/ibm-granite/granite-3.1-2b-instruct) alojado en Hugging Face.  
-   - Se define el token de acceso en el entorno y se configuran parámetros como la temperatura para el modelo.
+---
 
-7. **Construcción del sistema QA con RetrievalQA**
-   - Se configura una instancia de [`RetrievalQA`](https://api.python.langchain.com/en/latest/chains/langchain.chains.retrieval_qa.base.html) que:
-     1. Recupera los fragmentos más relevantes usando FAISS (búsqueda por similitud).  
-     2. Genera la respuesta final empleando el LLM.
+## Pasos del Proceso
 
-8. **Definición de funciones específicas de consulta**
-   - Se crean funciones para realizar preguntas concretas:
-     - **Resumen**  
-     - **Tono**  
-     - **Firmantes**  
-   - **Función `buscar_cita_en_paginas(paginas, cita)`**  
+1. **Extracción del Texto mediante OCR (Tesseract):**  
+   - Se convierte cada página del PDF en una imagen utilizando `pdf2image`.
+   - Se aplica [Tesseract OCR](https://github.com/tesseract-ocr/tesseract) para extraer el texto en español de cada imagen.
+   - El resultado se almacena en un archivo temporal (`pages.txt`) para evitar reprocesos en futuras ejecuciones.
 
-     ```python
-     def buscar_cita_en_paginas(paginas, cita):
-         paginas_encontradas = []
-         for doc in paginas:
-             # Se busca la cita ignorando mayúsculas/minúsculas
-             if cita.lower() in doc.page_content.lower():
-                 # Se obtiene el número de página de la metadata, si existe
-                 numero_pagina = doc.metadata.get("page", "Desconocido")
-                 paginas_encontradas.append(numero_pagina)
-         return paginas_encontradas
-     ```
+2. **Unificación del Contenido:**  
+   - Se concatena el texto de todas las páginas en un único string que representa el documento completo.
 
-     Esta función recorre cada objeto `Document` (correspondiente a una página) y verifica si el texto a buscar (`cita`) aparece en su contenido, ignorando mayúsculas y minúsculas. En caso de encontrar la coincidencia, recupera el número de página desde los metadatos del `Document`.  
+3. **División del Documento en Fragmentos (Chunks):**  
+   - Se utiliza `RecursiveCharacterTextSplitter` de LangChain para dividir el documento en partes más pequeñas, optimizando el procesamiento y evitando superar los límites de tokens del modelo.
+
+4. **Vectorización (Embeddings) de Cada Fragmento:**  
+   - Se emplea el modelo de embeddings [`all-MiniLM-L6-v2`](https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2) para transformar cada fragmento en un vector de alta dimensión.
+   - Estos vectores permiten realizar búsquedas semánticas de forma eficiente.
+
+5. **Creación de la Base de Datos Vectorial con FAISS:**  
+   - Los embeddings generados se indexan en una base de datos vectorial FAISS para permitir búsquedas por similitud.
+
+6. **Configuración del LLM y del Sistema QA:**  
+   - Se configura un modelo LLM (en este caso, el modelo de Watsonx de IBM) para generar respuestas en español.
+   - Se define un prompt template que obliga a responder únicamente con la respuesta, sin comentarios adicionales.
+   - Se construye el sistema QA utilizando `RetrievalQA`, que combina la búsqueda de los fragmentos más relevantes en FAISS y la generación de respuestas con el LLM.
+
+7. **Definición de Funciones Específicas de Consulta:**  
+   - Se implementan funciones para responder preguntas concretas, tales como:
+     - **Resumen del Documento**
+     - **Tono del Documento**
+     - **Firmantes del Documento**
+     - **Páginas donde se cita a "Mario Pérez" y "doña Miranda"**  
      
-     - **Páginas que mencionan a Mario Pérez**  
-     - **Páginas que mencionan a doña Miranda**  
+   - La función `buscar_cita_en_paginas` se utiliza para identificar en qué páginas aparece una cita específica.
 
-9. **Ejecución principal (`main`)**
-   - Se llama a cada una de las funciones de consulta.  
-   - Se guardan las respuestas en archivos de texto en la carpeta `respuestas` en un archivo `.txt`relativo a cada pregunta/respuesta.
+8. **Ejecución Principal (`main`):**  
+   - Se invocan las funciones de consulta y se guardan las respuestas en archivos de texto dentro de la carpeta `respuestas`.
+
+---
+
+## Función de Utilidad: `buscar_cita_en_paginas`
+
+Esta función recorre una lista de objetos `Document` (cada uno representa una página) y busca una palabra clave dentro del contenido, devolviendo el número de página donde se encontró la cita.
+
+```python
+def buscar_cita_en_paginas(documents, keyword):
+    paginas = []
+    for doc in documents:
+        try:
+            contenido = doc.page_content
+        except AttributeError:
+            contenido = doc.get_content() if hasattr(doc, "get_content") else ""
+        if keyword.lower() in contenido.lower():
+            pagina = doc.metadata.get("page", "Desconocido")
+            paginas.append(pagina)
+    return paginas if paginas else "No se encontró la cita."
+```
+
+
+## Inspiración
+
+El diseño y flujo de trabajo de este proyecto se basa en una presentación de IBM Community, en la cual se muestra el uso y el poder de Granite, el modelo de lenguaje de IBM. Este proyecto adapta esos conceptos para procesar documentos PDF y responder preguntas específicas utilizando tecnologías de vanguardia en procesamiento de lenguaje natural.

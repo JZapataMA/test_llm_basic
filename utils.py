@@ -1,12 +1,13 @@
-# -----------------------------------------------------------------------------
-# Función para buscar en qué páginas se encuentra una cita dada
-# -----------------------------------------------------------------------------
-def buscar_cita_en_paginas(paginas, cita):
-    paginas_encontradas = []
-    for doc in paginas:
-        # Se busca la cita ignorando mayúsculas/minúsculas
-        if cita.lower() in doc.page_content.lower():
-            # Se obtiene el número de página de la metadata, si existe.
-            numero_pagina = doc.metadata.get("page", "Desconocido")
-            paginas_encontradas.append(numero_pagina)
-    return paginas_encontradas
+def buscar_cita_en_paginas(documents, keyword):
+    paginas = []
+    for doc in documents:
+        # Utiliza page_content si existe, de lo contrario, get_content()
+        try:
+            contenido = doc.page_content
+        except AttributeError:
+            contenido = doc.get_content() if hasattr(doc, "get_content") else ""
+        if keyword.lower() in contenido.lower():
+            # Intenta obtener el número de página desde metadata, si existe
+            pagina = doc.metadata.get("page", "Desconocido")
+            paginas.append(pagina)
+    return paginas if paginas else "No se encontró la cita."

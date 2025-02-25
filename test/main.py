@@ -7,14 +7,13 @@ from langchain.chains import RetrievalQA
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.vectorstores import FAISS
+from langchain.prompts import PromptTemplate
 from dotenv import load_dotenv
 import warnings
 
 from utils import buscar_cita_en_paginas
 
 load_dotenv()
-
-import warnings
 warnings.filterwarnings("ignore")
 
 # Definición de paths para guardar las respuestas
@@ -81,21 +80,33 @@ embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 vectorstore = FAISS.from_documents(chunk_docs, embeddings)
 
 # Configurar el modelo de lenguaje desde HuggingFaceHub
-api_token = os.getenv("API-KEY")
 llm = HuggingFaceHub(
-    repo_id = "ibm-granite/granite-3.1-2b-instruct",
+    repo_id="ibm-granite/granite-3.1-2b-instruct",
     huggingfacehub_api_token=api_token,
     model_kwargs={"temperature": 0.8}
 )
 
-# Creación del sistema QA utilizando RetrievalQA
-qa = RetrievalQA.from_chain_type(
-    llm=llm,
-    chain_type="stuff",  # Se puede experimentar con otros chain types, como "map_reduce"
-    retriever=vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 4})
+# Crear un prompt template que asegure respuestas en español y solo la respuesta
+prompt_template = PromptTemplate(
+    input_variables=["context", "question"],
+    template=(
+        "Utiliza el siguiente contexto para responder a la pregunta en español. "
+        "Responde únicamente con la respuesta, sin comentarios adicionales.\n\n"
+        "Contexto: {context}\n"
+        "Pregunta: {question}\n"
+        "Respuesta:"
+    )
 )
 
-# --- Definición de funciones para responder cada pregunta ---
+# Creación del sistema QA utilizando RetrievalQA y pasando el prompt template
+qa = RetrievalQA.from_chain_type(
+    llm=llm,
+    chain_type="stuff",  # Puedes experimentar con otros chain types
+    retriever=vectorstore.as_retriever(search_type="similarity", search_kwargs={"k": 4}),
+    chain_type_kwargs={"prompt": prompt_template}
+)
+
+# --- Definición de funciones para las consultas de forma síncrona ---
 def obtener_resumen():
     """Retorna un resumen del documento en menos de 200 palabras."""
     return qa.run(preguntas["resumen"])
@@ -116,7 +127,6 @@ def obtener_firmantes():
     """Retorna los firmantes del documento, en caso de existir."""
     return qa.run(preguntas["firmantes"])
 
-# --- Función principal para ejecutar todas las consultas ---
 def main():
     resumen = obtener_resumen()
     tono = obtener_tono()
