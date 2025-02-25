@@ -1,6 +1,6 @@
 # Procesamiento de Documentos PDF y Sistema de QA con LLM
 
-Este proyecto implementa un flujo de trabajo para procesar documentos PDF y construir un sistema de Preguntas & Respuestas (QA) utilizando técnicas de OCR, embeddings y un modelo LLM. La idea principal es extraer el contenido textual del PDF, segmentarlo, vectorizarlo y finalmente emplear un modelo de lenguaje para responder consultas específicas acerca del documento.
+Esta propuesta de solución al desafío Arkho implementa un flujo de trabajo para procesar documentos PDF y construir un sistema de Preguntas & Respuestas (QA) utilizando técnicas de OCR, embeddings y un modelo LLM. La idea principal es extraer el contenido textual del PDF, segmentarlo, vectorizarlo y finalmente emplear un modelo de lenguaje para responder consultas específicas acerca del documento.
 
 ---
 
@@ -84,3 +84,20 @@ def buscar_cita_en_paginas(documents, keyword):
 ## Inspiración
 
 El diseño y flujo de trabajo de este proyecto se basa en una presentación de IBM Community, en la cual se muestra el uso y el poder de Granite, el modelo de lenguaje de IBM. Este proyecto adapta esos conceptos para procesar documentos PDF y responder preguntas específicas utilizando tecnologías de vanguardia en procesamiento de lenguaje natural.
+
+## Uso
+
+Para ejecutar el flujo de trabajo y obtener las respuestas a las consultas definidas, simplemente ejecuta:
+
+```
+python main.py
+```
+
+Esto:
+
+- Procesará el documento PDF mediante OCR.
+- Extraerá, unificará y dividirá el contenido.
+- Generará los embeddings y creará la base de datos vectorial.
+- Ejecutará las consultas mediante el sistema QA y guardará las respuestas en la carpeta respuestas.
+
+
